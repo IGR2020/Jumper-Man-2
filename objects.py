@@ -38,47 +38,34 @@ class Player(pygame.sprite.Sprite):
         self.y_vel = 0
         self.hit = False
         self.hit_count = 0
-        self.animate_speed = 3
+        self.animate_speed = 6 # higher value lower speed
         self.sprite_sheet = "Idle"
-        self.gravity = 1
-        self.fall_count = 0
-        self.speed = 5
+
+        # movement
+        self.fall_speed = 0.2
+        self.speed = 0.5
+        self.max_speed = 8
+        self.jump_height = 8
 
     def display(self, screen, x_offset, y_offset):
         # getting current sprite sheet
         self.sprite_sheet = "Idle"
         if self.x_vel != 0:
             self.sprite_sheet = "Run"
+        if self.x_vel > 0:
+            self.direction = "right"
+        if self.x_vel < 0:
+            self.direction = "left"
         self.sprite_sheet = self.sprite_sheet + "_" + self.direction
         sprite_index = (self.animation_count // self.animate_speed) % len(self.sprites[self.sprite_sheet])
         self.sprite = self.sprites[self.sprite_sheet][sprite_index]
         self.animation_count += 1
 
         self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
-
-        if self.hit:
-            x_offset, y_offset = 0, 0
             
         screen.blit(self.sprite, (self.rect.x - x_offset, self.rect.y - y_offset))
 
-        return x_offset, y_offset
-
-    def update_sprite(self):
-        self.sprite_sheet = "Idle"
-        if self.x_vel != 0:
-            self.sprite_sheet = "Run"
-        sprite_sheet_name = self.sprite_sheet + "_" + self.direction
-        sprites = self.sprites[sprite_sheet_name]
-        sprite_index = (self.animation_count // self.animate_speed) % len(sprites)
-        self.sprite = sprites[sprite_index]
-        self.animation_count += 1
-        self.update()
-
-    def update(self):
-        self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
-
     def landed(self, obj):
-        self.fall_count = 0
         self.y_vel = 0
         self.jump_count = 0
         self.rect.bottom = obj.rect.top
@@ -100,10 +87,7 @@ class Player(pygame.sprite.Sprite):
                     self.landed(obj)
                 else:
                     self.hit_head(obj)
-                if obj.name == "Trap":
-                    self.is_hit()
-                elif obj.name == "Trophy":
-                    return True
+                break
         self.rect.x += dx
         for obj in objects:
             if self.rect.colliderect(obj.rect):
@@ -111,38 +95,38 @@ class Player(pygame.sprite.Sprite):
                     self.rect.right = obj.rect.left
                 else:
                     self.rect.left = obj.rect.right
-                if obj.name == "Trap":
-                    self.is_hit()
-                elif obj.name == "Trophy":
-                    return True
+                break
 
     def move_left(self):
-        self.x_vel += -self.speed
-        if self.direction != "left":
-            self.direction = "left"
-            self.animation_count = 0
+        self.x_vel -= self.speed
+        self.x_vel = max(min(self.x_vel, self.max_speed), -self.max_speed)
 
     def move_right(self):
-        self.x_vel = self.speed
-        if self.direction != "right":
-            self.direction = "right"
-            self.animation_count = 0
+        self.x_vel += self.speed
+        self.x_vel = max(min(self.x_vel, self.max_speed), -self.max_speed)
 
     def jump(self):
-        if self.jump_count < 2:
-            self.y_vel = -self.gravity * 8
+        if self.jump_count < 1:
+            self.y_vel -= self.jump_height
             self.jump_count += 1
             self.animation_count = 0
-        if self.jump_count == 1:
-            self.fall_count = 0
+        self.animation_count = 0
 
     def controls(self):
+        if self.jump_count != 0:
+            self.max_speed = 5
+        else:
+            self.max_speed = 8
         keys = pygame.key.get_pressed()
-        self.x_vel = 0
         if keys[pygame.K_d]:
             self.move_right()
-        if keys[pygame.K_a]:
+        elif keys[pygame.K_a]:
             self.move_left()
+        else:
+            if abs(self.x_vel) < 1:
+                self.x_vel = 0
+            else:
+                self.x_vel *= 0.2
 
     def event_controls(self, event):
         if event.type == pygame.KEYDOWN:
@@ -155,10 +139,60 @@ class Player(pygame.sprite.Sprite):
         if self.hit_count >= fps // 2:
             self.hit = False
 
-        self.y_vel += min(1, (self.fall_count / fps) * self.gravity)
-        if self.move(self.x_vel, self.y_vel, objects):
-            return True
+        self.y_vel += self.fall_speed
+        self.move(self.x_vel, self.y_vel, objects)
         if self.rect.y > 1000:
             self.is_hit()
-        self.fall_count += 1
         self.controls()
+
+class Gumpa:
+    def __init__(self, x, y, sprites) -> None:
+        self.sprites = sprites
+        self.jump_count = 0
+        self.animation_count = 0
+        self.sprite = self.sprites["Run"][0]
+        self.rect = self.sprite.get_rect(topleft=(x, y))
+        self.x_vel = -2
+        self.y_vel = 0
+        self.animate_speed = 6 # higher value lower speed
+        self.sprite_sheet = "Run"
+        self.fall_speed = 0.2
+
+    def landed(self, obj):
+        self.y_vel = 0
+        self.rect.bottom = obj.rect.top
+        
+    def move(self, dx, dy, objects):
+        self.rect.x += dy
+        for obj in objects:
+            if self.rect.colliderect(obj.rect):
+                self.landed(obj)
+                self.animation_count = 0
+                break
+        self.rect.x += dx
+        for obj in objects:
+            if self.rect.colliderect(obj.rect):
+                if dx > 0:
+                    self.rect.right = obj.rect.left
+                    self.x_vel = -1
+                else:
+                    self.rect.left = obj.rect.right
+                    self.x_vel = 1
+                self.animation_count = 0
+                break
+
+    def script(self, objects):
+        self.y_vel += self.fall_speed
+        self.move(self.x_vel, self.y_vel, objects)
+
+    def display(self, screen, x_offset, y_offset):
+        # getting current sprite sheet
+        self.sprite_sheet = "Run"
+        self.sprite_sheet = self.sprite_sheet
+        sprite_index = (self.animation_count // self.animate_speed) % len(self.sprites[self.sprite_sheet])
+        self.sprite = self.sprites[self.sprite_sheet][sprite_index]
+        self.animation_count += 1
+
+        self.rect = self.sprite.get_rect(topleft=(self.rect.x, self.rect.y))
+            
+        screen.blit(self.sprite, (self.rect.x - x_offset, self.rect.y - y_offset))

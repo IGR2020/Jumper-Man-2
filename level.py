@@ -8,7 +8,7 @@ def load_data(path):
         file.close()
     return data
 
-def convert_blocks(data, sprite_sheet, air=15, y_offset=150):
+def convert_blocks(data, sprite_sheet, air=32, y_offset=0):
     """
     air indicates which value to be interpreted as null
     """
@@ -23,4 +23,4 @@ def convert_blocks(data, sprite_sheet, air=15, y_offset=150):
 data = load_data("Level Data/Level 1.json")
 theme = data["Theme"]
 level_data = data["Data"]
-level1 = convert_blocks(level_data, "Brick Kingdom")
+level1 = convert_blocks(level_data, theme)
