@@ -35,6 +35,7 @@ def load_sprite_sheets(path, width, height, direction=True, resize=None):
 
     return all_sprites
 
+
 def load(path, size, scale):
     return pg.transform.scale_by(pg.transform.scale(pg.image.load(path), size), scale)
 

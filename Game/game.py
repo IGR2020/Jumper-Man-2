@@ -17,6 +17,8 @@ class CoreGame:
         self.clock = pg.time.Clock()
         self.fps = fps
 
+        self.deltaTime = 0
+
     def event(self, event):
         if event.type == pg.QUIT:
             self.run = False
@@ -24,7 +26,7 @@ class CoreGame:
             self.width, self.height = event.dict["size"]
 
     def tick(self):
-        self.clock.tick(self.fps)
+        self.deltaTime = self.clock.tick(self.fps) / 16
 
     def display(self): ...
 
@@ -38,16 +40,24 @@ class CoreGame:
 
 class Level(CoreGame):
 
-    def __init__(self, resolution: tuple[int, int], level: str, fps: int = 60) -> None:
+    def __init__(self, resolution: tuple[int, int], level: str, fps: int = 60, background: str = "Blue") -> None:
         super().__init__(resolution, fps)
+        pg.display.set_caption(f"Jumper Man 2 (Level {level.replace(".txt", "")}) ({version})")
+        pg.display.set_icon(assets["Virtual Guy"]["Idle Right"][0])
 
-        self.objects = loadLevel(level)
+        self.objects, _ = loadLevel(levelLocation + level)
         self.player = Player(100, 100, assets["Virtual Guy"])
 
         self.x_offset, self.y_offset = 0, 0
 
+        self.background = background
+
     def display(self):
         self.window.fill((255, 255, 255))
+
+        for i in range((self.width//backgroundSize)+1):
+            for j in range((self.height//backgroundSize)+1):
+                self.window.blit(assets["Background"][self.background], (i*backgroundSize, j*backgroundSize))
 
         for obj in self.objects:
             obj.display(self.window, self.x_offset, self.y_offset)
@@ -59,7 +69,10 @@ class Level(CoreGame):
     def tick(self):
         super().tick()
 
-        self.player.script(self.fps, self.objects)
+        if self.clock.get_fps() < 55:
+            print(f"[Warning] Low FPS {round(self.clock.get_fps())}")
+
+        self.player.script(self.fps, self.objects, self.deltaTime)
 
         self.x_offset, self.y_offset = (
             self.player.rect.centerx - self.width / 2,

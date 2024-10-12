@@ -58,7 +58,7 @@ class Object:
         self.mask = pg.mask.from_surface(image)
 
 class AnimatedBlock(Object):
-    animationSpeed = 3
+    animationSpeed = 5
     animationCount = 0
     sprite = pg.Surface((blockSize, blockSize))
 
@@ -76,7 +76,7 @@ class AnimatedBlock(Object):
         sprites = self.sprites[sprite_sheet_name]
         sprite_index = (self.animationCount // self.animationSpeed) % len(sprites)
         self.sprite = sprites[sprite_index]
-        self.animationSpeed += 1
+        self.animationCount += 1
         self.update(self.sprite)
 
 
@@ -171,8 +171,8 @@ class Player:
         if obj.type == "Trap":
             self.is_hit()
 
-    def move(self, objects):
-        self.rect.y += self.y_vel
+    def move(self, objects, deltaTime):
+        self.rect.y += self.y_vel * deltaTime
         for obj in objects:
             if self.rect.colliderect(obj.rect) and obj.type == "Object":
                 if self.y_vel > 0:
@@ -180,7 +180,7 @@ class Player:
                 else:
                     self.hit_head(obj)
             self.trapEffect(obj)
-        self.rect.x += self.x_vel + self.bonusSpeed
+        self.rect.x += (self.x_vel + self.bonusSpeed) * deltaTime
         for obj in objects:
             if self.rect.colliderect(obj.rect) and obj.type == "Object":
                 if self.x_vel + self.bonusSpeed > 0:
@@ -232,14 +232,14 @@ class Player:
             if event.key == pg.K_r:
                 self.is_hit()
 
-    def script(self, fps, objects):
+    def script(self, fps, objects, deltaTime=1):
         if self.hit:
             self.hit_count += 1
         if self.hit_count >= fps // 2:
             self.hit = False
 
         self.y_vel += min(1, (self.fall_count / fps) * self.gravity)
-        self.move(objects)
+        self.move(objects, deltaTime)
         if self.rect.y > 1000:
             self.is_hit()
         if abs(self.bonusSpeed) > 0:
