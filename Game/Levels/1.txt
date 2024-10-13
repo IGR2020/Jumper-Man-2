@@ -3,7 +3,7 @@
 
   M     M
   M     M
-  M    SM
+  M    wM
   M     M
   Ms    M
   Mb    M
@@ -16,5 +16,5 @@
   Mt    M
   Mb    M
   M    iM
-   w s  M
+     s  M
 mmmmmmmmm
