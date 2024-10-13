@@ -85,9 +85,31 @@ class Fire(AnimatedBlock):
         super().__init__(x, y, None, assets["Fire"], scale, angle, size, assets["Fire"]["Off"][0], "Trap")
         self.sprite_sheet = "On"
 
-    def update_sprite(self):
+class Saw(AnimatedBlock):
+    def __init__(self, x: int, y: int, scale: int = 1, angle: int = 0, size: tuple[int, int] | list[int] = None) -> None:
+        super().__init__(x, y, None, assets["Saw"], scale, angle, size, assets["Saw"]["Off"][0], "Trap")
         self.sprite_sheet = "On"
+
+class Trophie(AnimatedBlock):
+    def __init__(self, x: int, y: int, scale: int = 1, angle: int = 0, size: tuple[int, int] | list[int] = None) -> None:
+        super().__init__(x, y, None, assets["Trophie"], scale, angle, size, assets["Trophie"]["Idle"][0], "Win")
+        self.name = "Trophie"
+        self.sprite_sheet = "Active"
+
+    def update_sprite(self):
         super().update_sprite()
+        self.update(self.sprite)
+    
+
+class Trampoline(AnimatedBlock):
+    def __init__(self, x: int, y: int, scale: int = 1, angle: int = 0, size: tuple[int, int] | list[int] = None) -> None:
+        super().__init__(x, y, None, assets["Trampoline"], scale, angle, size, assets["Trampoline"]["Idle"][0], "Object")
+        self.sprite_sheet = "Jump"
+        self.name = "Trampoline"
+
+    def update_sprite(self):
+        super().update_sprite()
+        self.update(self.sprite)
 
 class Player:
     def __init__(self, x, y, sprites):
@@ -110,7 +132,8 @@ class Player:
         self.bonusSpeed = 0
         self.acceleration = 0.5
         self.friction = 0.4
-        self.onIce = False
+        self.void = 1000
+        self.win = False
 
     def display(self, screen, x_offset, y_offset):
         self.update_sprite()
@@ -150,6 +173,9 @@ class Player:
             self.friction = 0.05
             self.speed = 25
             self.acceleration = 0.1
+        elif obj.name == "Trampoline":
+            self.y_vel = self.gravity * -16
+            self.jump_count += 1
         else:
             self.acceleration = 0.5
             self.friction = 0.4
@@ -165,11 +191,13 @@ class Player:
         self.jump_count = 0
         self.rect.x, self.rect.y = 100, 100
 
-    def trapEffect(self, obj):
+    def objEffect(self, obj):
         if not pg.sprite.collide_mask(self, obj):
             return
         if obj.type == "Trap":
             self.is_hit()
+        if obj.name == "Trophie":
+            self.win = True
 
     def move(self, objects, deltaTime):
         self.rect.y += self.y_vel * deltaTime
@@ -179,7 +207,7 @@ class Player:
                     self.landed(obj)
                 else:
                     self.hit_head(obj)
-            self.trapEffect(obj)
+            self.objEffect(obj)
         self.rect.x += (self.x_vel + self.bonusSpeed) * deltaTime
         for obj in objects:
             if self.rect.colliderect(obj.rect) and obj.type == "Object":
@@ -187,7 +215,7 @@ class Player:
                     self.rect.right = obj.rect.left
                 else:
                     self.rect.left = obj.rect.right
-            self.trapEffect(obj)
+            self.objEffect(obj)
 
     def move_left(self):
         self.x_vel += -self.acceleration
@@ -240,7 +268,7 @@ class Player:
 
         self.y_vel += min(1, (self.fall_count / fps) * self.gravity)
         self.move(objects, deltaTime)
-        if self.rect.y > 1000:
+        if self.rect.y > self.void:
             self.is_hit()
         if abs(self.bonusSpeed) > 0:
             self.bonusSpeed -= (self.bonusSpeed / abs(self.bonusSpeed)) * 0.2
