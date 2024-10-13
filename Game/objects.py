@@ -169,7 +169,7 @@ class Player:
         self.y_vel = 0
         self.jump_count = 0
         self.rect.bottom = obj.rect.top
-        if obj.name == "Ice Block":
+        if obj.name in ("Icy Grass Block", "Ice Block"):
             self.friction = 0.05
             self.speed = 25
             self.acceleration = 0.1
